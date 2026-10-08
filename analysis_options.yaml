@@ -1,0 +1,32 @@
+include: package:flutter_lints/flutter.yaml
+
+linter:
+  rules:
+    - avoid_init_to_null
+    - prefer_single_quotes
+    - avoid_empty_else
+    - avoid_print
+    - deprecated_member_use_from_same_package
+    - empty_statements
+    - always_declare_return_types
+    # - always_specify_types
+    - cascade_invocations
+    - curly_braces_in_flow_control_structures
+    - empty_catches
+    - file_names
+    - prefer_const_constructors
+    - prefer_final_fields
+    - prefer_foreach
+    - prefer_mixin
+    - require_trailing_commas
+    - sort_constructors_first
+
+analyzer:
+  exclude:
+    - build/**
+    - .dart_tool/**
+
+  errors:
+    comment_references: ignore
+    require_trailing_commas: ignore
+    invalid_annotation_target: ignore
