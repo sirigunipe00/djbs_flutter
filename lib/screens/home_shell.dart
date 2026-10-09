@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
 // import 'package:share_plus/share_plus.dart';
 
 import '../constants.dart';
@@ -276,7 +276,7 @@ class _HomeShellState extends State<HomeShell> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Text(s('user'), style: const TextStyle(color: AppColors.termGray)),
           ),
-          // _item(Icons.share, s('share'), _share),
+          _item(Icons.share, s('share'), _share),
           if (_isAdmin)
             _item(Icons.person_add, s('add_user'), () => _push(const DonorFormScreen())),
           _item(Icons.settings, s('settings'), () => _push(const SettingsScreen())),
@@ -302,14 +302,14 @@ class _HomeShellState extends State<HomeShell> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
-  // Future<void> _share() async {
-  //   await SharePlus.instance.share(
-  //     ShareParams(
-  //       text: 'DJBS Foundation App \n ${AppConst.playStore}',
-  //       subject: 'DJBS Foundation App',
-  //     ),
-  //   );
-  // }
+  Future<void> _share() async {
+    await SharePlus.instance.share(
+      ShareParams(
+        text: 'DJBS Foundation App \n ${AppConst.playStore}',
+        subject: 'DJBS Foundation App',
+      ),
+    );
+  }
 
   Widget _homeBody() {
     final shortcuts = [
@@ -346,7 +346,7 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
         Image.asset('assets/images/djbs_logos.png', height: 125),
-        SizedBox(height: 60),
+        const SizedBox(height: 60),
         Image.asset('assets/images/sheetal.png', height: 80),
       ],
     );

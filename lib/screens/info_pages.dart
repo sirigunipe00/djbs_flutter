@@ -141,15 +141,15 @@ class _MorguePageState extends State<MorguePage> {
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  Future<void> _contact() async {
-    final uri = Uri.parse(
-      'mailto:${AppConst.developerEmail}?subject=${Uri.encodeComponent(AppConst.developerName)}',
-    );
-    final opened = await launchUrl(uri);
-    if (!opened) {
-      await launchUrl(Uri.parse('tel:${AppConst.developerPhone}'));
-    }
-  }
+  // Future<void> _contact() async {
+  //   final uri = Uri.parse(
+  //     'mailto:${AppConst.developerEmail}?subject=${Uri.encodeComponent(AppConst.developerName)}',
+  //   );
+  //   final opened = await launchUrl(uri);
+  //   if (!opened) {
+  //     await launchUrl(Uri.parse('tel:${AppConst.developerPhone}'));
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

@@ -3,8 +3,8 @@ class AppConst {
   // static const adminUid = 'HVfnrbFweWYB2fOWLUvkwpG9jPs2';
   static const servicePhone = '+919904651119';
   static const foundationEmail = 'djbs.foundation@gmail.com';
-  // static const playStore =
-  //     'https://play.google.com/store/apps/details?id=com.jatin.bloodbank';
+  static const playStore =
+      'https://play.google.com/store/apps/details?id=com.djbsfoundation.bloodbank';
   static const facebookApp = 'fb://profile/1200747493380525';
   static const facebookWeb = 'https://www.facebook.com/sheetalicecreamgroup';
   static const ndfHome = 'https://ndf.gov.in/';

@@ -6,6 +6,7 @@ import '../main.dart';
 import '../models/donor.dart';
 import '../services/app_services.dart';
 import '../strings.dart';
+import '../utils/word_capitalization.dart';
 
 class DonorFormScreen extends StatefulWidget {
   const DonorFormScreen({super.key});
@@ -94,7 +95,12 @@ class _DonorFormScreenState extends State<DonorFormScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(controller: _name, decoration: InputDecoration(labelText: s('fullName'))),
+          TextField(
+            controller: _name,
+            textCapitalization: TextCapitalization.words,
+            inputFormatters: const [WordCapitalizationFormatter()],
+            decoration: InputDecoration(labelText: s('fullName')),
+          ),
           TextField(
             controller: _mobile,
             keyboardType: TextInputType.phone,

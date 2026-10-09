@@ -1,4 +1,17 @@
 class Donor {
+
+  factory Donor.fromMap(Map<dynamic, dynamic> data) {
+    String read(String key) => data[key]?.toString() ?? '';
+    return Donor(
+      name: read('name'),
+      mobileNumber: read('mobileNumber'),
+      bloodGroup: read('bloodGroup'),
+      city: read('city'),
+      lat: read('lat'),
+      lan: read('lan'),
+      adhar: read('adhar'),
+    );
+  }
   Donor({
     required this.name,
     required this.mobileNumber,
@@ -26,17 +39,4 @@ class Donor {
         'lan': lan,
         'adhar': adhar,
       };
-
-  factory Donor.fromMap(Map<dynamic, dynamic> data) {
-    String read(String key) => data[key]?.toString() ?? '';
-    return Donor(
-      name: read('name'),
-      mobileNumber: read('mobileNumber'),
-      bloodGroup: read('bloodGroup'),
-      city: read('city'),
-      lat: read('lat'),
-      lan: read('lan'),
-      adhar: read('adhar'),
-    );
-  }
 }

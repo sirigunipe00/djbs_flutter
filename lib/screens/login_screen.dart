@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +13,7 @@ import '../models/donor.dart';
 import '../services/app_services.dart';
 import '../strings.dart';
 import '../utils/verhoeff.dart';
+import '../utils/word_capitalization.dart';
 import 'forgot_screen.dart';
 import 'home_shell.dart';
 
@@ -331,7 +333,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   : SvgPicture.asset('assets/images/ic_user.svg', height: 56),
             ),
             const SizedBox(height: 12),
-            _whiteField(controller: _name, hint: s('fullName')),
+            _whiteField(
+              controller: _name,
+              hint: s('fullName'),
+              textCapitalization: TextCapitalization.words,
+              inputFormatters: const [WordCapitalizationFormatter()],
+            ),
             _whiteField(controller: _email, hint: s('Email'), keyboard: TextInputType.emailAddress),
             _whiteField(controller: _mobile, hint: s('mobile_num'), keyboard: TextInputType.phone),
             _whiteField(controller: _aadhar, hint: s('aadhar'), keyboard: TextInputType.number),
@@ -382,11 +389,15 @@ class _LoginScreenState extends State<LoginScreen> {
     bool obscure = false,
     TextInputType? keyboard,
     VoidCallback? onToggle,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       keyboardType: keyboard,
+      textCapitalization: textCapitalization,
+      inputFormatters: inputFormatters,
       style: const TextStyle(color: Colors.white),
       cursorColor: Colors.white,
       decoration: InputDecoration(

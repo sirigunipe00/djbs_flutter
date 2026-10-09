@@ -33,28 +33,61 @@ class _DonorListScreenState extends State<DonorListScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    if (!await Net.online()) {
-      toast('Internet connection may not available');
-    } else {
-      toast('Please Wait...');
-    }
-    final ref = FirebaseDatabase.instance
-        .ref('donors')
-        .child(widget.city)
-        .child(widget.group);
-    ref.onChildAdded.listen((event) {
-      final value = event.snapshot.value;
-      if (value is! Map) return;
-      final donor = Donor.fromMap(value);
-      if (!mounted) return;
-      setState(() => _donors.add(donor));
-    }, onError: (_) {
-      if (mounted) setState(() => _loading = false);
-    });
-    await Future<void>.delayed(const Duration(seconds: 2));
-    if (mounted) setState(() => _loading = false);
+ Future<void> _load() async {
+  if (!await Net.online()) {
+    toast('Internet connection may not available');
+  } else {
+    toast('Please Wait...');
   }
+
+  final ref = FirebaseDatabase.instance
+      .ref('donors')
+      .child(widget.city)
+      .child(widget.group);
+
+  try {
+    final snapshot = await ref.get();
+
+    if (snapshot.exists) {
+      final value = snapshot.value;
+
+      if (value is Map) {
+        final donors = <Donor>[];
+
+        for (final entry in value.entries) {
+          final donorValue = entry.value;
+
+          if (donorValue is Map) {
+            donors.add(Donor.fromMap(donorValue));
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _donors
+              ..clear()
+              ..addAll(donors);
+            _loading = false;
+          });
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  } catch (e) {
+    debugPrint('Error loading donors: $e');
+
+    if (mounted) {
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+}
 
   Future<void> _call(Donor donor) async {
     final uri = Uri.parse('tel:${donor.mobileNumber}');

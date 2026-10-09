@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Strings extends ChangeNotifier {
-  static final Strings instance = Strings._();
   Strings._();
+  static final Strings instance = Strings._();
 
   static const _prefKey = 'app_lang';
   String lang = 'en';
