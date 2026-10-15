@@ -179,10 +179,23 @@ class _HomeShellState extends State<HomeShell> {
       child: Scaffold(
         key: _scaffoldKey,
         appBar: AppBar(
-          title: Text(_title),
+          title: Text(
+            _title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: const Color(0xFF1E5BB8),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
           actions: [
             PopupMenuButton<String>(
-              icon: const Icon(Icons.language),
+              icon: const Icon(Icons.language, color: Colors.white),
               onSelected: (code) {
                 if (code == 'en') _setLang('en', 'English');
                 if (code == 'hi') _setLang('hi', 'Hindi');
@@ -312,43 +325,308 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _homeBody() {
-    final shortcuts = [
-      ('assets/images/ic_blood_128.png', s('need_blood'), () => _push(const NeedBloodScreen())),
-      ('assets/images/bank_ic_128.png', s('find_blood_bank'), () => _push(const BankScreen())),
-      ('assets/images/eye_ic_128.png', s('eye_donor'), () => _openPage(_HomePage.eye)),
-      ('assets/images/soldier_ic_128.png', s('n.d.f'), () => _openPage(_HomePage.ndf)),
-      ('assets/images/ic_body_128.png', s('morgue'), () => _openPage(_HomePage.morgue)),
-      ('assets/images/ambulance_128.png', s('ambulance'), () => _push(const AmbulanceScreen())),
-    ];
-    return ListView(
-      children: [
-        const SizedBox(height: 16),
-        const Text(
-          'Initiated by',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.termGray, fontSize: 32),
-        ),
-        SizedBox(
-          height: 88,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            children: [
-              for (final item in shortcuts)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: InkWell(
-                    onTap: item.$3,
-                    child: Image.asset(item.$1, width: 48, height: 48),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
+              child: Column(
+                children: [
+                  const SizedBox(height: 14),
+
+                  // 1. Header logo row with flanking icons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Left icons
+                        Image.asset(
+                          'assets/images/ic_blood_128.png',
+                          height: 38,
+                          width: 38,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 8),
+                        Image.asset(
+                          'assets/images/bank_ic_128.png',
+                          height: 38,
+                          width: 38,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Center logo box
+                        Image.asset(
+                          'assets/images/djbs_logos.png',
+                          height: 64,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 10),
+
+                        // Right icons
+                        Image.asset(
+                          'assets/images/eye_ic_128.png',
+                          height: 32,
+                          width: 32,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'assets/images/soldier_ic_128.png',
+                          height: 32,
+                          width: 32,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 6),
+                        Image.asset(
+                          'assets/images/ambulance_128.png',
+                          height: 32,
+                          width: 32,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
+                    ),
                   ),
+
+                  const SizedBox(height: 8),
+
+                  // Tagline: Service • Support • Save Lives
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Service',
+                        style: TextStyle(
+                          color: Color(0xFF1E5BB8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: Color(0xFFE91E63),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Support',
+                        style: TextStyle(
+                          color: Color(0xFF1E5BB8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          '•',
+                          style: TextStyle(
+                            color: Color(0xFFE91E63),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Save Lives',
+                        style: TextStyle(
+                          color: Color(0xFF1E5BB8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // 2. Feature Cards (2 columns x 3 rows)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        // Row 1: Need Blood & Find Blood Bank
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _featureCard(
+                                title: s('need_blood'),
+                                subtitle: s('need_blood_desc'),
+                                iconAsset: 'assets/images/ic_card_need_blood.png',
+                                bgColor: const Color(0xFFFCECF3),
+                                onTap: () => _push(const NeedBloodScreen()),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _featureCard(
+                                title: s('find_blood_bank'),
+                                subtitle: s('find_blood_bank_desc'),
+                                iconAsset: 'assets/images/ic_card_blood_bank.png',
+                                bgColor: const Color(0xFFE9F3FE),
+                                onTap: () => _push(const BankScreen()),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Row 2: Eye Donor & N.D.F.
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _featureCard(
+                                title: s('eye_donor'),
+                                subtitle: s('eye_donor_desc'),
+                                iconAsset: 'assets/images/eye_ic_128.png',
+                                bgColor: const Color(0xFFFDF5E7),
+                                onTap: () => _openPage(_HomePage.eye),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _featureCard(
+                                title: s('n.d.f'),
+                                subtitle: s('ndf_desc'),
+                                iconAsset: 'assets/images/ic_card_ndf.png',
+                                bgColor: const Color(0xFFEDF7ED),
+                                onTap: () => _openPage(_HomePage.ndf),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Row 3: Dead Body Chamber & Ambulance
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _featureCard(
+                                title: s('morgue'),
+                                subtitle: s('morgue_desc'),
+                                iconAsset: 'assets/images/ic_card_chamber.png',
+                                bgColor: const Color(0xFFF6F7FC),
+                                onTap: () => _openPage(_HomePage.morgue),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _featureCard(
+                                title: s('ambulance'),
+                                subtitle: s('ambulance_desc'),
+                                iconAsset: 'assets/images/ambulance_128.png',
+                                bgColor: const Color(0xFFF6F7FB),
+                                onTap: () => _push(const AmbulanceScreen()),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Sheetal pink logo centered after cards
+                  Center(
+                    child: Image.asset(
+                      'assets/images/sheetal.png',
+                      height: 48,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  const Spacer(),
+
+                  // 3. Bottom illustration artwork
+                  Image.asset(
+                    'assets/images/home_bottom_illustration.png',
+                    width: double.infinity,
+                    fit: BoxFit.fitWidth,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _featureCard({
+    required String title,
+    required String subtitle,
+    required String iconAsset,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 146,
+          padding: const EdgeInsets.fromLTRB(16, 16, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 42,
+                width: 42,
+                child: Image.asset(iconAsset, fit: BoxFit.contain),
+              ),
+              const Spacer(),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF112952),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: Color(0xFF687690),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF6A7B95),
+                  fontSize: 11.5,
+                  height: 1.25,
                 ),
+              ),
             ],
           ),
         ),
-        Image.asset('assets/images/djbs_logos.png', height: 125),
-        const SizedBox(height: 60),
-        Image.asset('assets/images/sheetal.png', height: 80),
-      ],
+      ),
     );
   }
 

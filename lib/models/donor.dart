@@ -10,6 +10,7 @@ class Donor {
       lat: read('lat'),
       lan: read('lan'),
       adhar: read('adhar'),
+      email: read('email'),
     );
   }
   Donor({
@@ -20,6 +21,7 @@ class Donor {
     required this.lat,
     required this.lan,
     required this.adhar,
+    this.email = '',
   });
 
   final String name;
@@ -29,6 +31,7 @@ class Donor {
   final String lat;
   final String lan;
   final String adhar;
+  final String email;
 
   Map<String, String> toMap() => {
         'name': name,
@@ -38,5 +41,6 @@ class Donor {
         'lat': lat,
         'lan': lan,
         'adhar': adhar,
+        if (email.isNotEmpty) 'email': email,
       };
 }
