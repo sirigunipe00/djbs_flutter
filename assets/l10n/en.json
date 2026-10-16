@@ -108,5 +108,14 @@
   "kutch": "Mayur Blood Bank\\nAzad Chowk, Mandvi, Kutch\\nPhone : 02832-231324\n        \\n\\nG.K. General Hospital And Adani Medical College\\nBhuj,Dist.Kutch-370001\\nPhone : 02832-250150\n        \\n\\nJivanjyot Blood Bank\\nJivandeep Hospital,63-A/B Vijay Nagar,\\nNew Hospital Road, Kutch\\nPhone : 02832-222812\n        \\n\\nShri Rajabhai Patel Blood Bank\\nIndian Medical Association Gandhidhan\\nTrustPlot No.CC-1, Ward No. 7-B,\\nNr.Gurukul Road,Gandhidham,\\nKutch-370201\\nPhone : 02836-257366,257323,257333\n        \\n\\nPurna Blood Bank\\nPurna Nurshing Home, Ganga Naka\\nKutch\\nPhone : N/A\n        \\n\\nMatrushri Meghbai Premji Jetha Hospital And Research Centre\\nBhuj Mundra Road, Kutch-370001\\nPhone : 02832-231133,231144",
   "User_icon": "icon",
   "i_agree": "I Agree and Continue",
-  "jatinsoft": "Jatinsoft"
+  "jatinsoft": "Jatinsoft",
+  "morgue_intro": "During difficult times, finding a safe and suitable facility to preserve the body of a loved one can be challenging. DJBS Foundation helps you find mortuary facilities available in your district, along with their contact details, so you can reach out for assistance when needed.",
+  "morgue_instruction": "Select your district below to view the available facilities and contact the appropriate centre for support.",
+  "morgue_note": "Please Note: Facility availability, preservation charges, operating hours, and required documents may vary. Kindly contact the respective facility for confirmation.",
+  "select_your_district": "Select Your District",
+  "contact_facility": "Contact Facility",
+  "district_label": "District: Select Your District",
+  "facility_available_amreli": "DJBS Dead Body Chamber Facility is available in Amreli district. Contact the facility below for immediate assistance.",
+  "facility_unavailable_msg": "Sorry, currently our dead body chamber service is unavailable for the selected district. Please contact the helpline for assistance.",
+  "please_select_district": "Please select your district"
 }

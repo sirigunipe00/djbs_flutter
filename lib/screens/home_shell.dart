@@ -349,22 +349,22 @@ class _HomeShellState extends State<HomeShell> {
                           width: 38,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 15),
                         Image.asset(
                           'assets/images/bank_ic_128.png',
                           height: 38,
                           width: 38,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 15),
 
-                        // Center logo box
-                        Image.asset(
-                          'assets/images/djbs_logos.png',
-                          height: 64,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 10),
+                        // // Center logo box
+                        // Image.asset(
+                        //   'assets/images/djbs_logos.png',
+                        //   height: 64,
+                        //   fit: BoxFit.contain,
+                        // ),
+                        // const SizedBox(width: 10),
 
                         // Right icons
                         Image.asset(
@@ -373,14 +373,14 @@ class _HomeShellState extends State<HomeShell> {
                           width: 32,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 15),
                         Image.asset(
                           'assets/images/soldier_ic_128.png',
                           height: 32,
                           width: 32,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 15),
                         Image.asset(
                           'assets/images/ambulance_128.png',
                           height: 32,
@@ -394,9 +394,9 @@ class _HomeShellState extends State<HomeShell> {
                   const SizedBox(height: 8),
 
                   // Tagline: Service • Support • Save Lives
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children:  [
                       Text(
                         'Service',
                         style: TextStyle(
@@ -538,12 +538,25 @@ class _HomeShellState extends State<HomeShell> {
 
                   const SizedBox(height: 14),
 
-                  // Sheetal pink logo centered after cards
-                  Center(
-                    child: Image.asset(
-                      'assets/images/sheetal.png',
-                      height: 48,
-                      fit: BoxFit.contain,
+                  // DJBS logo on left, Sheetal pink logo on right (enlarged)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/djbs_logos.png',
+                          height: 92,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(width: 18),
+                        Image.asset(
+                          'assets/images/sheetal.png',
+                          height: 72,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
                     ),
                   ),
 

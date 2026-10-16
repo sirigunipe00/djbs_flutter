@@ -93,11 +93,15 @@ class MorguePage extends StatefulWidget {
 }
 
 class _MorguePageState extends State<MorguePage> {
-  String _city = AppConst.cities.first;
+  String? _city;
 
   Future<void> _call() async {
+    if (_city == null || _city == 'NONE') {
+      toast(s('please_select_district'));
+      return;
+    }
     if (_city != 'Amreli') {
-      toast('Sorry,Currently Our service is Unavailable for selected city');
+      toast(s('facility_unavailable_msg'));
       return;
     }
     await launchUrl(Uri.parse('tel:${AppConst.servicePhone}'));
@@ -105,35 +109,269 @@ class _MorguePageState extends State<MorguePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.all(12),
-            children: [_body(s('mourge'))],
+    final districts = AppConst.cities.where((c) => c != 'NONE').toList();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Card with Chamber Icon & Title
+          Card(
+            elevation: 0,
+            color: const Color(0xFFF4F7FC),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3EDFB),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Image.asset(
+                          'assets/images/ic_card_chamber.png',
+                          height: 32,
+                          width: 32,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.inventory_2_outlined,
+                            color: Color(0xFF1E5BB8),
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          s('morgue'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Intro text
+                  Text(
+                    s('morgue_intro'),
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      height: 1.5,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Instruction text
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
+                        child: Icon(Icons.arrow_forward_rounded, size: 16, color: Color(0xFF1E5BB8)),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          s('morgue_instruction'),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            height: 1.45,
+                            color: Color(0xFF1E5BB8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: DropdownButtonFormField<String>(
-            initialValue: _city,
-            decoration: InputDecoration(labelText: s('select_city')),
+
+          const SizedBox(height: 14),
+
+          // Please Note / Disclaimer Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFBEB),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFFDE68A)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Color(0xFFD97706),
+                  size: 22,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    s('morgue_note'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      height: 1.45,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // District Label
+          Text(
+            s('district_label'),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // District Dropdown
+          DropdownButtonFormField<String>(
+            value: _city,
+            hint: Text(
+              s('select_your_district'),
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
+            ),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: const Icon(Icons.location_city_outlined, color: Color(0xFF1E5BB8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF1E5BB8), width: 1.8),
+              ),
+            ),
             items: [
-              for (final city in AppConst.cities)
-                DropdownMenuItem(value: city, child: Text(city)),
+              for (final city in districts)
+                DropdownMenuItem(
+                  value: city,
+                  child: Text(city, style: const TextStyle(fontSize: 15)),
+                ),
             ],
-            onChanged: (value) => setState(() => _city = value ?? _city),
+            onChanged: (value) => setState(() => _city = value),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.callGreen),
+
+          const SizedBox(height: 16),
+
+          // If district selected, show status card
+          if (_city != null) ...[
+            if (_city == 'Amreli')
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: Color(0xFF059669), size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$_city - ${s('morgue')}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF065F46),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      s('facility_available_amreli'),
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        height: 1.4,
+                        color: Color(0xFF047857),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline, color: Color(0xFF64748B), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        s('facility_unavailable_msg'),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 16),
+          ],
+
+          // Contact Facility Button
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.callGreen,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 1,
+            ),
+            icon: const Icon(Icons.phone_in_talk, size: 20),
+            label: Text(
+              s('contact_facility'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             onPressed: _call,
-            child: Text(s('call')),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 }
