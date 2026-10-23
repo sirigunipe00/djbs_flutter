@@ -18,7 +18,6 @@ class DonorFormScreen extends StatefulWidget {
 class _DonorFormScreenState extends State<DonorFormScreen> {
   final _name = TextEditingController();
   final _mobile = TextEditingController();
-  final _aadhar = TextEditingController();
   String _city = AppConst.cities.first;
   String _group = AppConst.groups.first;
   bool _busy = false;
@@ -27,13 +26,11 @@ class _DonorFormScreenState extends State<DonorFormScreen> {
   void dispose() {
     _name.dispose();
     _mobile.dispose();
-    _aadhar.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final name = _name.text.trim();
-    var aadhar = _aadhar.text.trim();
     final mobile = _mobile.text.trim();
     if (name.isEmpty) {
       toast("Name can't be empty!");
@@ -59,7 +56,6 @@ class _DonorFormScreenState extends State<DonorFormScreen> {
       toast('Enter Valid Mobile Number!');
       return;
     }
-    if (aadhar.isEmpty) aadhar = 'Aadhar not Provided';
 
     setState(() => _busy = true);
     try {
@@ -71,7 +67,6 @@ class _DonorFormScreenState extends State<DonorFormScreen> {
         city: _city,
         lat: AppLocation.lat.toString(),
         lan: AppLocation.lng.toString(),
-        adhar: aadhar,
       );
       await FirebaseDatabase.instance
           .ref('donors')
@@ -105,11 +100,6 @@ class _DonorFormScreenState extends State<DonorFormScreen> {
             controller: _mobile,
             keyboardType: TextInputType.phone,
             decoration: InputDecoration(labelText: s('mobile_num')),
-          ),
-          TextField(
-            controller: _aadhar,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: s('aadhar')),
           ),
           DropdownButtonFormField<String>(
             initialValue: _city,

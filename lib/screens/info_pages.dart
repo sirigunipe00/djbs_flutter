@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../constants.dart';
 import '../main.dart';
 import '../strings.dart';
@@ -9,13 +8,45 @@ import '../theme.dart';
 class EyePage extends StatelessWidget {
   const EyePage({super.key});
 
+  Widget _buildCallButton() {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.callGreen,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 2,
+      ),
+      icon: const Icon(Icons.phone_in_talk, size: 22),
+      label: Text(
+        s('call'),
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+      onPressed: () => launchUrl(Uri.parse('tel:${AppConst.servicePhone}')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
-        Image.asset('assets/images/eye_poster.jpg', height: 280, fit: BoxFit.cover),
-        const SizedBox(height: 12),
+        Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              'assets/images/eye.jpeg',
+              height: 260,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        // Primary Call Button moved upward for immediate visibility & action
+        // _buildCallButton(),
+        // const SizedBox(height: 16),
         _heading(s('abteye')),
         _body(s('abteye2')),
         _heading(s('abteye3')),
@@ -24,12 +55,10 @@ class EyePage extends StatelessWidget {
         _body(s('abteye6')),
         _heading(s('abteye7')),
         _body(s('abteye8')),
-        const SizedBox(height: 12),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.callGreen),
-          onPressed: () => launchUrl(Uri.parse('tel:${AppConst.servicePhone}')),
-          child: Text(s('call')),
-        ),
+        const SizedBox(height: 16),
+        // Secondary Call Button at the bottom
+        _buildCallButton(),
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -41,7 +70,7 @@ class NdfPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
         _heading(s('ndf1')),
         _body(s('ndf2')),
@@ -53,9 +82,9 @@ class NdfPage extends StatelessWidget {
         _body(s('ndf8')),
         _heading(s('ndf9')),
         _body(s('ndf10')),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         ElevatedButton(onPressed: () => _confirmPay(context), child: Text(s('donate_online'))),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () => launchUrl(
             Uri.parse(AppConst.ndfHistory),
@@ -63,6 +92,7 @@ class NdfPage extends StatelessWidget {
           ),
           child: Text(s('payment_history')),
         ),
+        const SizedBox(height: 32),
       ],
     );
   }

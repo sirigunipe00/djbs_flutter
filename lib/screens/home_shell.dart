@@ -38,6 +38,8 @@ class _HomeShellState extends State<HomeShell> {
   bool _uploading = false;
   DateTime? _lastBack;
   final Map<String, String> _banners = {};
+  String _userName = '';
+  String _userPhone = '';
 
   User? get _user => FirebaseAuth.instance.currentUser;
   bool get _isAdmin => _user?.uid == AppConst.adminUid;
@@ -55,35 +57,24 @@ class _HomeShellState extends State<HomeShell> {
       return;
     }
     await user.reload();
-    final fresh = FirebaseAuth.instance.currentUser;
-    if (fresh != null && !fresh.emailVerified) {
-      await fresh.sendEmailVerification();
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Please Verify Your Account'),
-          content: const Text(
-            "we've sent you a verification email, if you didn't get it please retry login to get verification mail",
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ok'),
-            ),
-          ],
-        ),
-      );
-      await FirebaseAuth.instance.signOut();
-      _goLogin();
-      return;
-    }
     final warning = await AppLocation.refresh();
     if (warning != null) toast(warning);
     if (!await Net.online()) {
       toast('Internet connection may not available');
     }
+
+    final phone = AuthService.extract10DigitPhone(user.email ?? user.phoneNumber ?? '');
+    String name = user.displayName ?? '';
+    if ((name.isEmpty || name == 'No Name') && phone.isNotEmpty) {
+      final fetched = await AuthService.findUserName(phone);
+      if (fetched != null && fetched.isNotEmpty) {
+        name = fetched;
+        try { await user.updateDisplayName(fetched); } catch (_) {}
+      }
+    }
+    _userName = name;
+    _userPhone = phone;
+
     await _loadPhoto();
     _listenBanners();
     if (mounted) setState(() {});
@@ -210,12 +201,15 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
         drawer: _drawer(),
-        body: switch (_page) {
-          _HomePage.home => _homeBody(),
-          _HomePage.eye => const EyePage(),
-          _HomePage.ndf => const NdfPage(),
-          _HomePage.morgue => const MorguePage(),
-        },
+        body: SafeArea(
+          top: false,
+          child: switch (_page) {
+            _HomePage.home => _homeBody(),
+            _HomePage.eye => const EyePage(),
+            _HomePage.ndf => const NdfPage(),
+            _HomePage.morgue => const MorguePage(),
+          },
+        ),
       ),
     );
   }
@@ -261,18 +255,21 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  user?.displayName ?? '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                if (_userName.isNotEmpty)
+                  Text(
+                    _userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  user?.email ?? '',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
+                const SizedBox(height: 4),
+                if (_userPhone.isNotEmpty)
+                  Text(
+                    '+91 $_userPhone',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
               ],
             ),
           ),
@@ -335,121 +332,121 @@ class _HomeShellState extends State<HomeShell> {
                 children: [
                   const SizedBox(height: 14),
 
-                  // 1. Header logo row with flanking icons
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Left icons
-                        Image.asset(
-                          'assets/images/ic_blood_128.png',
-                          height: 38,
-                          width: 38,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 15),
-                        Image.asset(
-                          'assets/images/bank_ic_128.png',
-                          height: 38,
-                          width: 38,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 15),
+                  // // 1. Header logo row with flanking icons
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 10),
+                  //   child: Row(
+                  //     mainAxisAlignment: MainAxisAlignment.center,
+                  //     crossAxisAlignment: CrossAxisAlignment.center,
+                  //     children: [
+                  //       // Left icons
+                  //       Image.asset(
+                  //         'assets/images/ic_blood_128.png',
+                  //         height: 38,
+                  //         width: 38,
+                  //         fit: BoxFit.contain,
+                  //       ),
+                  //       const SizedBox(width: 15),
+                  //       Image.asset(
+                  //         'assets/images/bank_ic_128.png',
+                  //         height: 38,
+                  //         width: 38,
+                  //         fit: BoxFit.contain,
+                  //       ),
+                  //       const SizedBox(width: 15),
 
-                        // // Center logo box
-                        // Image.asset(
-                        //   'assets/images/djbs_logos.png',
-                        //   height: 64,
-                        //   fit: BoxFit.contain,
-                        // ),
-                        // const SizedBox(width: 10),
+                  //       // // Center logo box
+                  //       // Image.asset(
+                  //       //   'assets/images/djbs_logos.png',
+                  //       //   height: 64,
+                  //       //   fit: BoxFit.contain,
+                  //       // ),
+                  //       // const SizedBox(width: 10),
 
-                        // Right icons
-                        Image.asset(
-                          'assets/images/eye_ic_128.png',
-                          height: 32,
-                          width: 32,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 15),
-                        Image.asset(
-                          'assets/images/soldier_ic_128.png',
-                          height: 32,
-                          width: 32,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(width: 15),
-                        Image.asset(
-                          'assets/images/ambulance_128.png',
-                          height: 32,
-                          width: 32,
-                          fit: BoxFit.contain,
-                        ),
-                      ],
-                    ),
-                  ),
+                  //       // Right icons
+                  //       Image.asset(
+                  //         'assets/images/eye_ic_128.png',
+                  //         height: 32,
+                  //         width: 32,
+                  //         fit: BoxFit.contain,
+                  //       ),
+                  //       const SizedBox(width: 15),
+                  //       Image.asset(
+                  //         'assets/images/soldier_ic_128.png',
+                  //         height: 32,
+                  //         width: 32,
+                  //         fit: BoxFit.contain,
+                  //       ),
+                  //       const SizedBox(width: 15),
+                  //       Image.asset(
+                  //         'assets/images/ambulance_128.png',
+                  //         height: 32,
+                  //         width: 32,
+                  //         fit: BoxFit.contain,
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
 
-                  const SizedBox(height: 8),
+                  // const SizedBox(height: 8),
 
-                  // Tagline: Service • Support • Save Lives
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children:  [
-                      Text(
-                        'Service',
-                        style: TextStyle(
-                          color: Color(0xFF1E5BB8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          '•',
-                          style: TextStyle(
-                            color: Color(0xFFE91E63),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Support',
-                        style: TextStyle(
-                          color: Color(0xFF1E5BB8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
-                          '•',
-                          style: TextStyle(
-                            color: Color(0xFFE91E63),
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Save Lives',
-                        style: TextStyle(
-                          color: Color(0xFF1E5BB8),
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // // Tagline: Service • Support • Save Lives
+                  // const Row(
+                  //   mainAxisAlignment: MainAxisAlignment.center,
+                  //   children:  [
+                  //     Text(
+                  //       'Service',
+                  //       style: TextStyle(
+                  //         color: Color(0xFF1E5BB8),
+                  //         fontSize: 14,
+                  //         fontWeight: FontWeight.bold,
+                  //         letterSpacing: 0.2,
+                  //       ),
+                  //     ),
+                  //     Padding(
+                  //       padding: EdgeInsets.symmetric(horizontal: 6),
+                  //       child: Text(
+                  //         '•',
+                  //         style: TextStyle(
+                  //           color: Color(0xFFE91E63),
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     Text(
+                  //       'Support',
+                  //       style: TextStyle(
+                  //         color: Color(0xFF1E5BB8),
+                  //         fontSize: 14,
+                  //         fontWeight: FontWeight.bold,
+                  //         letterSpacing: 0.2,
+                  //       ),
+                  //     ),
+                  //     Padding(
+                  //       padding: EdgeInsets.symmetric(horizontal: 6),
+                  //       child: Text(
+                  //         '•',
+                  //         style: TextStyle(
+                  //           color: Color(0xFFE91E63),
+                  //           fontSize: 16,
+                  //           fontWeight: FontWeight.bold,
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     Text(
+                  //       'Save Lives',
+                  //       style: TextStyle(
+                  //         color: Color(0xFF1E5BB8),
+                  //         fontSize: 14,
+                  //         fontWeight: FontWeight.bold,
+                  //         letterSpacing: 0.2,
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
 
-                  const SizedBox(height: 14),
+                  // const SizedBox(height: 14),
 
                   // 2. Feature Cards (2 columns x 3 rows)
                   Padding(
@@ -553,7 +550,7 @@ class _HomeShellState extends State<HomeShell> {
                         const SizedBox(width: 18),
                         Image.asset(
                           'assets/images/sheetal.png',
-                          height: 72,
+                          height: 62,
                           fit: BoxFit.contain,
                         ),
                       ],

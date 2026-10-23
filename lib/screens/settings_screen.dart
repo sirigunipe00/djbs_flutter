@@ -22,6 +22,8 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _photoUrl;
   bool _busy = false;
+  String _userName = '';
+  String _userMobile = '';
 
   User? get _user => FirebaseAuth.instance.currentUser;
 
@@ -32,12 +34,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _goLogin());
       return;
     }
-    _loadPhoto();
+    _loadProfile();
   }
 
-  Future<void> _loadPhoto() async {
-    final url = await ProfileStore.imageUrl(_user?.displayName);
+  Future<void> _loadProfile() async {
+    final user = _user;
+    if (user == null) return;
+    final url = await ProfileStore.imageUrl(user.displayName);
     if (mounted) setState(() => _photoUrl = url);
+
+    final phone = AuthService.extract10DigitPhone(user.email ?? user.phoneNumber ?? '');
+    String name = user.displayName ?? '';
+    if ((name.isEmpty || name == 'No Name') && phone.isNotEmpty) {
+      final fetched = await AuthService.findUserName(phone);
+      if (fetched != null && fetched.isNotEmpty) {
+        name = fetched;
+        try { await user.updateDisplayName(fetched); } catch (_) {}
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _userName = name;
+        _userMobile = phone;
+      });
+    }
   }
 
   Future<void> _pick() async {
@@ -65,7 +85,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _user;
     return Scaffold(
       appBar: AppBar(title: Text(s('settings'))),
       body: ListView(
@@ -88,9 +107,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(user?.displayName ?? '', textAlign: TextAlign.center, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          Text(user?.email ?? '', textAlign: TextAlign.center),
+          const SizedBox(height: 18),
+          if (_userName.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${s('fullName')}: ',
+                    style: const TextStyle(fontSize: 16, color: Colors.black54, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    _userName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          if (_userMobile.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${s('mobile_num')}: ',
+                    style: const TextStyle(fontSize: 15, color: Colors.black54),
+                  ),
+                  Text(
+                    '+91 $_userMobile',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {

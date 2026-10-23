@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../services/app_services.dart';
 import '../strings.dart';
 import 'login_screen.dart';
 
@@ -13,53 +14,72 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final _oldPass = TextEditingController();
   final _newPass = TextEditingController();
+  final _confirmPass = TextEditingController();
+
+  bool _hideNew = true;
+  bool _hideConfirm = true;
   bool _busy = false;
 
   @override
   void dispose() {
-    _oldPass.dispose();
     _newPass.dispose();
+    _confirmPass.dispose();
     super.dispose();
   }
 
   Future<void> _change() async {
-    final oldPass = _oldPass.text;
     final newPass = _newPass.text;
+    final confirmPass = _confirmPass.text;
     final user = FirebaseAuth.instance.currentUser;
-    final email = user?.email;
-    if (user == null || email == null) return;
-    if (oldPass.isEmpty) {
-      toast('Enter old password');
+
+    if (user == null) {
+      toast('Please login to continue');
       return;
     }
+
     if (newPass.isEmpty) {
       toast('Enter new password');
       return;
     }
+    if (newPass.length < 6) {
+      toast('New password must be at least 6 characters');
+      return;
+    }
+    if (newPass != confirmPass) {
+      toast('New passwords do not match');
+      return;
+    }
+
     setState(() => _busy = true);
     try {
-      final credential = EmailAuthProvider.credential(email: email, password: oldPass);
-      await user.reauthenticateWithCredential(credential);
-      await user.updatePassword(newPass);
-      toast('Password Updated, Login with your new password');
+      // 1. Get clean 10-digit mobile number
+      final mobile = AuthService.extract10DigitPhone(user.phoneNumber ?? user.email ?? '');
+
+      // 2. Directly update password in Realtime Database under users_by_phone and users
+      if (mobile.isNotEmpty) {
+        await AuthService.updatePasswordDirectly(
+          mobile: mobile,
+          newPassword: newPass,
+        );
+      }
+
+      // 3. Update password in Firebase Auth
+      try {
+        await user.updatePassword(newPass);
+      } catch (authError) {
+        debugPrint('[ChangePassword] Auth update warning: $authError');
+      }
+
+      toast('Password Updated Successfully! Please login with your new password.');
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (_) => false,
       );
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        toast('Wrong old Password');
-      } else {
-        toast('Please try again !');
-      }
-      _oldPass.clear();
-      _newPass.clear();
-    } catch (_) {
-      toast('Please try again !');
+    } catch (e) {
+      toast('Failed to update password: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -69,27 +89,61 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(s('change_password'))),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(
-              controller: _oldPass,
-              obscureText: true,
-              enabled: !_busy,
-              decoration: const InputDecoration(labelText: 'Old Password'),
-            ),
-            TextField(
-              controller: _newPass,
-              obscureText: true,
-              enabled: !_busy,
-              decoration: const InputDecoration(labelText: 'New Password'),
-            ),
-            const SizedBox(height: 24),
-            _busy
-                ? const CircularProgressIndicator()
-                : ElevatedButton(onPressed: _change, child: Text(s('change_password'))),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 16),
+              const Text(
+                'Enter your new password below to update your account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _newPass,
+                obscureText: _hideNew,
+                enabled: !_busy,
+                decoration: InputDecoration(
+                  labelText: s('new_password'),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_hideNew ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _hideNew = !_hideNew),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _confirmPass,
+                obscureText: _hideConfirm,
+                enabled: !_busy,
+                decoration: InputDecoration(
+                  labelText: s('confirm_password'),
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_hideConfirm ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _hideConfirm = !_hideConfirm),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _busy
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _change,
+                      child: Text(s('change_password'), style: const TextStyle(fontSize: 16)),
+                    ),
+            ],
+          ),
         ),
       ),
     );

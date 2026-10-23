@@ -26,8 +26,14 @@
   "fullName": "Full Name",
   "aadhar": "Aadhar Number",
   "forgetpass": "Forget Password ?",
-  "forgetpassword": "We just need your registered Email id to sent you password reset instructions.",
+  "forgetpassword": "Enter your registered Mobile Number and your New Password to update.",
   "btn_reset": "Reset",
+  "send_otp": "Send OTP",
+  "enter_otp": "Enter 6-Digit OTP",
+  "new_password": "New Password",
+  "confirm_password": "Confirm Password",
+  "resend_otp": "Resend OTP",
+  "update_password": "Update Password",
   "call": "Make a Call",
   "home": "Home",
   "need_blood": "Need Blood",
@@ -117,5 +123,6 @@
   "district_label": "District: Select Your District",
   "facility_available_amreli": "DJBS Dead Body Chamber Facility is available in Amreli district. Contact the facility below for immediate assistance.",
   "facility_unavailable_msg": "Sorry, currently our dead body chamber service is unavailable for the selected district. Please contact the helpline for assistance.",
-  "please_select_district": "Please select your district"
+  "please_select_district": "Please select your district",
+  "no_account_signup": "You don't have an account. Please Sign Up to continue."
 }

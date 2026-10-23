@@ -29,9 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginEmail = TextEditingController();
   final _loginPass = TextEditingController();
   final _name = TextEditingController();
-  final _email = TextEditingController();
   final _pass = TextEditingController();
-  final _aadhar = TextEditingController();
   final _mobile = TextEditingController();
   String _city = AppConst.cities.first;
   String _group = AppConst.groups.first;
@@ -55,9 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _loginEmail.dispose();
     _loginPass.dispose();
     _name.dispose();
-    _email.dispose();
     _pass.dispose();
-    _aadhar.dispose();
     _mobile.dispose();
     super.dispose();
   }
@@ -83,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final account = _loginEmail.text.trim();
     final pass = _loginPass.text;
     if (account.isEmpty) {
-      toast('Enter Email or Mobile Number !');
+      toast('Enter Mobile Number !');
       return;
     }
     if (pass.isEmpty) {
@@ -93,22 +89,47 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final isPhone = !account.contains('@');
     String emailToUse;
+    String? resolved;
 
     setState(() => _busy = true);
     try {
       if (isPhone) {
-        final cleanPhone = AuthService.normalizePhone(account);
+        final cleanPhone = AuthService.extract10DigitPhone(account);
         if (cleanPhone.length < 10) {
-          toast('Enter Valid Mobile Number or Email!');
+          toast('Enter Valid Mobile Number!');
           return;
         }
-        final resolved = await AuthService.findEmailByPhone(account);
-        if (resolved == null || resolved.isEmpty) {
-          toast('No account found for this Mobile Number.');
-          toast('Please login using your registered Email Address.');
+
+        // Check if account exists
+        final exists = await AuthService.accountExists(cleanPhone);
+        if (!exists) {
+          toast(s('no_account_signup'));
+          setState(() {
+            _signIn = false;
+            _mobile.text = cleanPhone;
+            if (_pass.text.isEmpty && pass.isNotEmpty) {
+              _pass.text = pass;
+            }
+          });
           return;
         }
-        emailToUse = resolved;
+
+        // Check stored password in database
+        final storedPass = await AuthService.getStoredPassword(cleanPhone);
+        if (storedPass != null && storedPass.isNotEmpty) {
+          if (storedPass != pass) {
+            toast('Incorrect Password. Please try again.');
+            return;
+          }
+        }
+
+        resolved = await AuthService.findEmailByPhone(account);
+        // Prefer canonical phone email $cleanPhone@djbs.app unless resolved is a custom non-djbs email
+        if (resolved != null && resolved.isNotEmpty && !resolved.endsWith('@djbs.app')) {
+          emailToUse = resolved;
+        } else {
+          emailToUse = AuthService.phoneToEmail(cleanPhone);
+        }
       } else {
         if (!AppConst.emailPattern.hasMatch(account.toLowerCase())) {
           toast('Enter Valid Email Address!');
@@ -118,18 +139,45 @@ class _LoginScreenState extends State<LoginScreen> {
         emailToUse = account.toLowerCase();
       }
 
-      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailToUse,
-        password: pass,
-      );
+      User? user;
+      try {
+        final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: emailToUse,
+          password: pass,
+        );
+        user = cred.user;
+      } on FirebaseAuthException catch (authErr) {
+        // If canonical email failed, try resolved email (if different) as fallback without creating any new user
+        if (isPhone && resolved != null && resolved.isNotEmpty && resolved != emailToUse) {
+          try {
+            final altCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: resolved,
+              password: pass,
+            );
+            user = altCred.user;
+            emailToUse = resolved;
+          } catch (_) {}
+        }
+        if (user == null) {
+          rethrow;
+        }
+      }
 
-      final user = cred.user;
       if (user != null) {
         if (isPhone) {
+          final cleanPhone = AuthService.extract10DigitPhone(account);
+          try {
+            final name = await AuthService.findUserName(cleanPhone);
+            if (name != null && name.isNotEmpty && (user.displayName == null || user.displayName!.isEmpty)) {
+              await user.updateDisplayName(name);
+            }
+          } catch (_) {}
+
           await AuthService.linkPhoneToEmail(
             phone: account,
             email: emailToUse,
             uid: user.uid,
+            password: pass,
           );
         } else {
           AuthService.syncUserMappingOnEmailLogin(user);
@@ -144,11 +192,37 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
         if (isPhone) {
-          toast('No account found with this Mobile Number.');
+          final clean = AuthService.extract10DigitPhone(account);
+          toast(s('no_account_signup'));
+          setState(() {
+            _signIn = false;
+            _mobile.text = clean;
+            if (_pass.text.isEmpty && pass.isNotEmpty) {
+              _pass.text = pass;
+            }
+          });
         } else {
-          toast('No account found with this Email.');
+          toast(s('no_account_signup'));
+          setState(() {
+            _signIn = false;
+          });
         }
       } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        if (isPhone) {
+          final clean = AuthService.extract10DigitPhone(account);
+          final exists = await AuthService.accountExists(clean);
+          if (!exists) {
+            toast(s('no_account_signup'));
+            setState(() {
+              _signIn = false;
+              _mobile.text = clean;
+              if (_pass.text.isEmpty && pass.isNotEmpty) {
+                _pass.text = pass;
+              }
+            });
+            return;
+          }
+        }
         toast('Incorrect Password. Please try again.');
       } else {
         toast('Authentication failed : ${e.message ?? 'Please check credentials'}');
@@ -168,9 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _register() async {
     if (!await _connected()) return;
     final name = _name.text.replaceAll('.', '');
-    final email = _email.text.trim();
     final mobile = _mobile.text.trim();
-    final aadhar = _aadhar.text.trim();
     final pass = _pass.text;
 
     // 1. Full Name
@@ -183,18 +255,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 2. Email
-    if (email.isEmpty) {
-      toast('Enter Email Address !');
-      return;
-    }
-    if (!AppConst.emailPattern.hasMatch(email.toLowerCase())) {
-      toast('Enter Valid Email Address!');
-      _email.clear();
-      return;
-    }
-
-    // 3. Mobile Number
+    // 2. Mobile Number
     if (mobile.isEmpty) {
       toast('Enter Mobile Number !');
       return;
@@ -205,26 +266,19 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // 4. Aadhaar Number (12 digits)
-    final cleanAadhar = aadhar.replaceAll(RegExp(r'\D'), '');
-    if (cleanAadhar.length != 12) {
-      toast('Enter Valid 12-digit Aadhar Number!');
-      return;
-    }
-
-    // 5. Password
+    // 3. Password
     if (pass.isEmpty) {
       toast('Enter Password !');
       return;
     }
 
-    // 6. City
+    // 4. City
     if (_city.toLowerCase() == 'none') {
       toast('Select City !');
       return;
     }
 
-    // 7. Blood Group
+    // 5. Blood Group
     if (_group.toLowerCase() == 'none') {
       toast('Select Blood Group !');
       return;
@@ -233,16 +287,17 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = true);
     try {
       await AppLocation.refresh();
+      final accountEmail = '$cleanMobile@djbs.app';
       final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email.toLowerCase(),
+        email: accountEmail,
         password: pass,
       );
       final user = cred.user;
       await user?.updateDisplayName(name);
 
       // Cache phone to email mapping locally immediately
-      await AuthService.cacheLocal(cleanMobile, email.toLowerCase());
-      await AuthService.cacheLocal(mobile, email.toLowerCase());
+      await AuthService.cacheLocal(cleanMobile, accountEmail);
+      await AuthService.cacheLocal(mobile, accountEmail);
 
       final donor = Donor(
         name: name,
@@ -251,8 +306,8 @@ class _LoginScreenState extends State<LoginScreen> {
         city: _city,
         lat: AppLocation.lat.toString(),
         lan: AppLocation.lng.toString(),
-        adhar: aadhar,
-        email: email.toLowerCase(),
+        adhar: '',
+        email: accountEmail,
       );
 
       try {
@@ -267,11 +322,12 @@ class _LoginScreenState extends State<LoginScreen> {
           await AuthService.saveUserRegistration(
             user: user,
             name: name,
-            email: email.toLowerCase(),
+            email: accountEmail,
             mobile: mobile,
             city: _city,
             bloodGroup: _group,
-            aadhar: aadhar,
+            aadhar: '',
+            password: pass,
           );
         }
       } catch (dbError) {
@@ -287,7 +343,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        toast('Email Already Exist! Please Login to continue.');
+        toast('Mobile Number Already Registered! Please Login.');
       } else {
         toast('Error : ${e.message}');
       }
@@ -365,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? const _LoadingDots()
                         : SvgPicture.asset('assets/images/ic_login.svg', height: 56),
                     const SizedBox(height: 20),
-                    _whiteField(controller: _loginEmail, hint: s('email_or_mobile'), keyboard: TextInputType.emailAddress),
+                    _whiteField(controller: _loginEmail, hint: s('mobile_num'), keyboard: TextInputType.phone),
                     const SizedBox(height: 24),
                     _whiteField(
                       controller: _loginPass,
@@ -427,9 +483,7 @@ class _LoginScreenState extends State<LoginScreen> {
               textCapitalization: TextCapitalization.words,
               inputFormatters: const [WordCapitalizationFormatter()],
             ),
-            _whiteField(controller: _email, hint: s('Email'), keyboard: TextInputType.emailAddress),
             _whiteField(controller: _mobile, hint: s('mobile_num'), keyboard: TextInputType.phone),
-            _whiteField(controller: _aadhar, hint: s('aadhar'), keyboard: TextInputType.number),
             _whiteField(
               controller: _pass,
               hint: s('Password'),

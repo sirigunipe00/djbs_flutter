@@ -1,3 +1,4 @@
+import 'package:djbs_foundation/services/app_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -83,7 +84,11 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(user?.displayName ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text(user?.email ?? ''),
+          Text(
+            (user?.email != null && user!.email!.contains('@djbs.app'))
+                ? '+91 ${AuthService.extract10DigitPhone(user.email)}'
+                : (user?.phoneNumber ?? user?.email ?? ''),
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _city,

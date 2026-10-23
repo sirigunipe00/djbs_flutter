@@ -3,7 +3,7 @@ description: "D.J.B.S. Foundation blood bank app."
 
 publish_to: 'none' 
 
-version: 1.0.4+5
+version: 1.0.5+9
 
 environment:
   sdk: ^3.12.0

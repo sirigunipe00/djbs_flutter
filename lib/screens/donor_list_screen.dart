@@ -8,6 +8,7 @@ import '../main.dart';
 import '../models/donor.dart';
 import '../services/app_services.dart';
 import '../strings.dart';
+import '../theme.dart';
 import 'map_screen.dart';
 
 class DonorListScreen extends StatefulWidget {
@@ -98,48 +99,67 @@ class _DonorListScreenState extends State<DonorListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('${widget.city} · ${widget.group}')),
-      body: Column(
-        children: [
-          if (_isAdmin)
-            Padding(
-              padding: const EdgeInsets.all(8),
-              child: Text(s('aadhar'), style: const TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          Expanded(
-            child: _loading && _donors.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    itemCount: _donors.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final donor = _donors[index];
-                      return ListTile(
-                        title: Text(donor.name),
-                        subtitle: Text(
-                          _isAdmin
-                              ? '${donor.mobileNumber}\n${donor.adhar}'
-                              : donor.mobileNumber,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: _loading && _donors.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _donors.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No Donors Found',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: _donors.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final donor = _donors[index];
+                            return ListTile(
+                              title: Text(
+                                donor.name,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(donor.mobileNumber),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.call, color: AppColors.callGreen),
+                                onPressed: () => _call(donor),
+                              ),
+                              onTap: () => _call(donor),
+                            );
+                          },
                         ),
-                        trailing: const Icon(Icons.call),
-                        onTap: () => _call(donor),
-                      );
-                    },
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MapScreen(donors: List.of(_donors)),
-                  ),
-                );
-              },
-              child: Text(s('map_btn')),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1E5BB8),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                icon: const Icon(Icons.map, size: 20),
+                label: Text(
+                  s('map_btn'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => MapScreen(donors: List.of(_donors)),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

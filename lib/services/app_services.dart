@@ -95,6 +95,103 @@ class AuthService {
     return digits;
   }
 
+  /// Extracts strictly the 10-digit mobile number, stripping any .v$timestamp or domain suffix
+  static String extract10DigitPhone(String? input) {
+    if (input == null || input.isEmpty) return '';
+    String clean = input.trim();
+    if (clean.contains('@')) {
+      clean = clean.split('@').first;
+    }
+    if (clean.contains('.')) {
+      clean = clean.split('.').first;
+    }
+    var digits = normalizePhone(clean);
+    if (digits.length > 10) {
+      digits = digits.substring(0, 10);
+    }
+    return digits;
+  }
+
+  /// Finds user's full name from SharedPreferences, users_by_phone, users, or donors
+  static Future<String?> findUserName(String mobile) async {
+    final clean = extract10DigitPhone(mobile);
+    if (clean.isEmpty) return null;
+
+    final prefs = await SharedPreferences.getInstance();
+    final cached = prefs.getString('djbs_name_$clean');
+    if (cached != null && cached.isNotEmpty && cached != 'null') {
+      return cached;
+    }
+
+    // 1. Check users_by_phone
+    try {
+      final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(clean).get();
+      if (snap.exists && snap.value is Map) {
+        final val = snap.value as Map;
+        final name = val['name']?.toString();
+        if (name != null && name.isNotEmpty && name != 'null') {
+          await prefs.setString('djbs_name_$clean', name);
+          return name;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Check users node (only if authenticated)
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final usersSnap = await FirebaseDatabase.instance.ref('users').get();
+        if (usersSnap.exists && usersSnap.value is Map) {
+          for (final entry in (usersSnap.value as Map).values) {
+            if (entry is Map) {
+              final uPhone = extract10DigitPhone(entry['mobile']?.toString() ?? entry['cleanMobile']?.toString() ?? '');
+              if (uPhone == clean) {
+                final name = entry['name']?.toString();
+                if (name != null && name.isNotEmpty && name != 'null') {
+                  await prefs.setString('djbs_name_$clean', name);
+                  await FirebaseDatabase.instance.ref('users_by_phone').child(clean).update({'name': name});
+                  return name;
+                }
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Search donors tree
+    try {
+      final donorsSnap = await FirebaseDatabase.instance.ref('donors').get();
+      if (donorsSnap.exists && donorsSnap.value is Map) {
+        for (final cityVal in (donorsSnap.value as Map).values) {
+          if (cityVal is! Map) continue;
+          for (final groupVal in cityVal.values) {
+            if (groupVal is! Map) continue;
+            for (final donorVal in groupVal.values) {
+              if (donorVal is! Map) continue;
+              final dPhone = extract10DigitPhone(donorVal['mobileNumber']?.toString() ?? '');
+              if (dPhone == clean) {
+                final name = donorVal['name']?.toString();
+                if (name != null && name.isNotEmpty && name != 'null') {
+                  await prefs.setString('djbs_name_$clean', name);
+                  await FirebaseDatabase.instance.ref('users_by_phone').child(clean).update({'name': name});
+                  return name;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  /// Formats a 10-digit mobile number into the internal synthetic account email
+  static String phoneToEmail(String phone) {
+    final clean = normalizePhone(phone);
+    return '$clean@djbs.app';
+  }
+
   /// Determines whether the input is formatted like an email
   static bool isEmail(String input) {
     final trimmed = input.trim().toLowerCase();
@@ -152,18 +249,65 @@ class AuthService {
     return null;
   }
 
+  /// Checks whether an account exists for the given mobile number in users_by_phone or donors
+  static Future<bool> accountExists(String mobile) async {
+    final clean = extract10DigitPhone(mobile);
+    if (clean.length < 10) return false;
+
+    // 1. Direct lookup in users_by_phone
+    try {
+      final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(clean).get();
+      if (snap.exists && snap.value != null) {
+        if (snap.value is Map) {
+          final map = snap.value as Map;
+          if (map.isNotEmpty) return true;
+        } else if (snap.value.toString().isNotEmpty) {
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint('[AuthService] accountExists users_by_phone error: $e');
+    }
+
+    final rawClean = normalizePhone(mobile);
+    if (rawClean.isNotEmpty && rawClean != clean) {
+      try {
+        final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(rawClean).get();
+        if (snap.exists && snap.value != null) return true;
+      } catch (_) {}
+    }
+
+    // 2. Search in donors tree
+    try {
+      final donorsSnap = await FirebaseDatabase.instance.ref('donors').get();
+      if (donorsSnap.exists && donorsSnap.value is Map) {
+        final citiesMap = donorsSnap.value as Map;
+        for (final cityVal in citiesMap.values) {
+          if (cityVal is! Map) continue;
+          for (final groupVal in cityVal.values) {
+            if (groupVal is! Map) continue;
+            for (final donorVal in groupVal.values) {
+              if (donorVal is! Map) continue;
+              final dPhone = extract10DigitPhone(donorVal['mobileNumber']?.toString() ?? '');
+              if (dPhone == clean) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AuthService] accountExists donors error: $e');
+    }
+
+    return false;
+  }
+
   /// Finds the registered email linked to the given phone number
   static Future<String?> findEmailByPhone(String rawPhone) async {
     final clean = normalizePhone(rawPhone);
     final digitsOnly = rawPhone.replaceAll(RegExp(r'\D'), '');
     if (clean.isEmpty && digitsOnly.isEmpty) return null;
-
-    // 0. Check local device cache first (instant and 100% offline-friendly)
-    final localMatch = await getLocalCachedEmail(rawPhone);
-    if (localMatch != null && localMatch.isNotEmpty) {
-      debugPrint('[AuthService] Found email from local cache: $localMatch');
-      return localMatch;
-    }
 
     final candidates = <String>{
       if (clean.isNotEmpty) clean,
@@ -174,7 +318,7 @@ class AuthService {
       rawPhone.trim(),
     };
 
-    // 1. Direct lookup in users_by_phone
+    // 1. Direct lookup in users_by_phone (authoritative server source)
     for (final key in candidates) {
       if (key.isEmpty) continue;
       try {
@@ -199,28 +343,11 @@ class AuthService {
       }
     }
 
-    // 2. Query in 'users' collection
-    try {
-      final usersSnap = await FirebaseDatabase.instance.ref('users').get();
-      if (usersSnap.exists && usersSnap.value is Map) {
-        final usersMap = usersSnap.value as Map;
-        for (final entry in usersMap.values) {
-          if (entry is Map) {
-            final userMobile = normalizePhone(entry['mobile']?.toString() ?? entry['mobileNumber']?.toString() ?? '');
-            if (userMobile.isNotEmpty && (userMobile == clean || userMobile.endsWith(clean) || clean.endsWith(userMobile))) {
-              final email = entry['email']?.toString();
-              if (email != null && email.contains('@')) {
-                final em = email.trim().toLowerCase();
-                await cacheLocal(clean, em);
-                await linkPhoneToEmail(phone: clean, email: em, uid: entry['uid']?.toString());
-                return em;
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('[AuthService] Error querying users node: $e');
+    // 2. Check local device cache
+    final localMatch = await getLocalCachedEmail(rawPhone);
+    if (localMatch != null && localMatch.isNotEmpty) {
+      debugPrint('[AuthService] Found email from local cache: $localMatch');
+      return localMatch;
     }
 
     // 3. Search in 'donors' tree (donors/{city}/{group}/{id})
@@ -252,6 +379,32 @@ class AuthService {
       debugPrint('[AuthService] Error querying donors tree: $e');
     }
 
+    // 4. Query in 'users' collection (only if authenticated)
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final usersSnap = await FirebaseDatabase.instance.ref('users').get();
+        if (usersSnap.exists && usersSnap.value is Map) {
+          final usersMap = usersSnap.value as Map;
+          for (final entry in usersMap.values) {
+            if (entry is Map) {
+              final userMobile = normalizePhone(entry['mobile']?.toString() ?? entry['mobileNumber']?.toString() ?? '');
+              if (userMobile.isNotEmpty && (userMobile == clean || userMobile.endsWith(clean) || clean.endsWith(userMobile))) {
+                final email = entry['email']?.toString();
+                if (email != null && email.contains('@')) {
+                  final em = email.trim().toLowerCase();
+                  await cacheLocal(clean, em);
+                  await linkPhoneToEmail(phone: clean, email: em, uid: entry['uid']?.toString());
+                  return em;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[AuthService] Error querying users node: $e');
+      }
+    }
+
     return null;
   }
 
@@ -260,6 +413,7 @@ class AuthService {
     required String phone,
     required String email,
     String? uid,
+    String? password,
   }) async {
     final clean = normalizePhone(phone);
     if (clean.isEmpty || !email.contains('@')) return;
@@ -275,13 +429,14 @@ class AuthService {
       'email': lowerEmail,
       'mobile': clean,
       if (uid != null) 'uid': uid,
+      if (password != null && password.isNotEmpty) 'pass': password,
       'updatedAt': ServerValue.timestamp,
     };
 
     try {
-      await FirebaseDatabase.instance.ref('users_by_phone').child(clean).set(data);
+      await FirebaseDatabase.instance.ref('users_by_phone').child(clean).update(data);
       if (phone.trim() != clean && phone.trim().isNotEmpty) {
-        await FirebaseDatabase.instance.ref('users_by_phone').child(phone.trim()).set(data);
+        await FirebaseDatabase.instance.ref('users_by_phone').child(phone.trim()).update(data);
       }
       debugPrint('[AuthService] Successfully linked phone $clean in users_by_phone');
     } catch (e) {
@@ -297,7 +452,8 @@ class AuthService {
     required String mobile,
     required String city,
     required String bloodGroup,
-    required String aadhar,
+    String aadhar = '',
+    String? password,
   }) async {
     final clean = normalizePhone(mobile);
     final lowerEmail = email.trim().toLowerCase();
@@ -308,7 +464,7 @@ class AuthService {
 
     // 2. Link in users_by_phone
     try {
-      await linkPhoneToEmail(phone: mobile, email: lowerEmail, uid: user.uid);
+      await linkPhoneToEmail(phone: mobile, email: lowerEmail, uid: user.uid, password: password);
     } catch (e) {
       debugPrint('[AuthService] saveUserRegistration linkPhone error: $e');
     }
@@ -324,12 +480,186 @@ class AuthService {
         'city': city,
         'bloodGroup': bloodGroup,
         'aadhar': aadhar,
+        if (password != null && password.isNotEmpty) 'pass': password,
         'createdAt': ServerValue.timestamp,
       });
       debugPrint('[AuthService] Successfully saved to users/${user.uid}');
     } catch (e) {
       debugPrint('[AuthService] saveUserRegistration users node error: $e');
     }
+  }
+
+  /// Generates the internal deterministic token for synthetic accounts
+  static String authSecretFor(String mobile) {
+    final clean = normalizePhone(mobile);
+    return 'Djbs@2026_$clean';
+  }
+
+  /// Retrieves the stored password for a mobile number from users_by_phone or users
+  static Future<String?> getStoredPassword(String rawPhone) async {
+    final clean = normalizePhone(rawPhone);
+    if (clean.isEmpty) return null;
+
+    try {
+      final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(clean).get();
+      if (snap.exists && snap.value is Map) {
+        final val = snap.value as Map;
+        final pass = val['pass']?.toString();
+        if (pass != null && pass.isNotEmpty) return pass;
+      }
+    } catch (e) {
+      debugPrint('[AuthService] Error reading password from users_by_phone: $e');
+    }
+
+    // Only query 'users' collection if authenticated
+    if (FirebaseAuth.instance.currentUser != null) {
+      try {
+        final usersSnap = await FirebaseDatabase.instance.ref('users').get();
+        if (usersSnap.exists && usersSnap.value is Map) {
+          final usersMap = usersSnap.value as Map;
+          for (final entry in usersMap.values) {
+            if (entry is Map) {
+              final userMobile = normalizePhone(entry['mobile']?.toString() ?? entry['cleanMobile']?.toString() ?? '');
+              if (userMobile == clean) {
+                final pass = entry['pass']?.toString();
+                if (pass != null && pass.isNotEmpty) return pass;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[AuthService] Error reading password from users node: $e');
+      }
+    }
+    return null;
+  }
+
+  /// Directly updates password in users_by_phone, users, and Firebase Auth
+  static Future<bool> updatePasswordDirectly({
+    required String mobile,
+    required String newPassword,
+  }) async {
+    final clean = extract10DigitPhone(mobile);
+    if (clean.length < 10) return false;
+    final syntheticEmail = phoneToEmail(clean);
+
+    // 0. Fetch existing stored pass and email before updating
+    String? oldPass;
+    String? currentEmail;
+    try {
+      final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(clean).get();
+      if (snap.exists && snap.value is Map) {
+        final val = snap.value as Map;
+        oldPass = val['pass']?.toString();
+        currentEmail = val['email']?.toString();
+      }
+    } catch (e) {
+      debugPrint('[AuthService] error reading oldPass before update: $e');
+    }
+
+    // 1. Update in Firebase Auth:
+    final current = FirebaseAuth.instance.currentUser;
+    if (current != null) {
+      // User is logged in (e.g. Settings screen)
+      try {
+        await current.updatePassword(newPassword);
+        debugPrint('[AuthService] Successfully updated password on current logged-in user');
+      } catch (e) {
+        debugPrint('[AuthService] current.updatePassword error: $e');
+      }
+    } else {
+      // User is not logged in (e.g. Forgot Password screen)
+      // Sign in to the existing account using old password and update it to the new password
+      final emailsToTry = <String>{
+        syntheticEmail,
+        if (currentEmail != null && currentEmail.isNotEmpty) currentEmail,
+      };
+
+      bool updatedInAuth = false;
+      for (final em in emailsToTry) {
+        if (oldPass != null && oldPass.isNotEmpty) {
+          try {
+            final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: em,
+              password: oldPass,
+            );
+            await cred.user?.updatePassword(newPassword);
+            updatedInAuth = true;
+            debugPrint('[AuthService] Successfully updated Firebase Auth password for $em');
+            await FirebaseAuth.instance.signOut();
+            break;
+          } catch (e) {
+            debugPrint('[AuthService] signIn with oldPass failed for $em: $e');
+          }
+        }
+      }
+
+      // If existing account did not exist yet in Firebase Auth, create it once with the canonical synthetic email
+      if (!updatedInAuth) {
+        try {
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: syntheticEmail,
+            password: newPassword,
+          );
+          await FirebaseAuth.instance.signOut();
+          debugPrint('[AuthService] Created account $syntheticEmail in Firebase Auth with new password');
+        } catch (e) {
+          debugPrint('[AuthService] createUser for $syntheticEmail: $e');
+        }
+      }
+    }
+
+    // 2. Update in users_by_phone
+    try {
+      await FirebaseDatabase.instance.ref('users_by_phone').child(clean).update({
+        'pass': newPassword,
+        'mobile': clean,
+        'email': syntheticEmail,
+        'updatedAt': ServerValue.timestamp,
+      });
+      await cacheLocal(clean, syntheticEmail);
+      debugPrint('[AuthService] Successfully updated pass in users_by_phone/$clean to $newPassword');
+    } catch (e) {
+      debugPrint('[AuthService] users_by_phone update error: $e');
+    }
+
+    // 3. Find UID and update in users node
+    try {
+      final snap = await FirebaseDatabase.instance.ref('users_by_phone').child(clean).get();
+      String? uid;
+      if (snap.exists && snap.value is Map) {
+        uid = (snap.value as Map)['uid']?.toString();
+      }
+      if (uid != null && uid.isNotEmpty) {
+        await FirebaseDatabase.instance.ref('users').child(uid).update({
+          'pass': newPassword,
+          'email': syntheticEmail,
+          'updatedAt': ServerValue.timestamp,
+        });
+      } else if (FirebaseAuth.instance.currentUser != null) {
+        // Query users by mobile only if authenticated
+        final usersSnap = await FirebaseDatabase.instance.ref('users').get();
+        if (usersSnap.exists && usersSnap.value is Map) {
+          for (final entry in (usersSnap.value as Map).entries) {
+            if (entry.value is Map) {
+              final uMobile = normalizePhone(entry.value['mobile']?.toString() ?? entry.value['cleanMobile']?.toString() ?? '');
+              if (uMobile == clean) {
+                await FirebaseDatabase.instance.ref('users').child(entry.key.toString()).update({
+                  'pass': newPassword,
+                  'email': syntheticEmail,
+                  'updatedAt': ServerValue.timestamp,
+                });
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AuthService] users node password update error: $e');
+    }
+
+    return true;
   }
 
   /// When user logs in with email, auto-sync their phone mapping if found in donors/users

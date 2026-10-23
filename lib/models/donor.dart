@@ -20,7 +20,7 @@ class Donor {
     required this.city,
     required this.lat,
     required this.lan,
-    required this.adhar,
+    this.adhar = '',
     this.email = '',
   });
 
