@@ -1,5 +1,6 @@
 class AppConst {
-  static const adminUid = 'zazZJUrWqdWXGhBOCd89QXXYDcW2';
+  // static const adminUid = 'zazZJUrWqdWXGhBOCd89QXXYDcW2';
+  static const adminUid = 'Gh9VZhuRQFaerRcImRNcgbiUk3b2';
   // static const adminUid = 'HVfnrbFweWYB2fOWLUvkwpG9jPs2';
   static const servicePhone = '+919904651119';
   static const foundationEmail = 'djbs.foundation@gmail.com';

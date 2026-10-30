@@ -3,7 +3,7 @@ description: "D.J.B.S. Foundation blood bank app."
 
 publish_to: 'none' 
 
-version: 1.0.5+9
+version: 1.0.6+10
 
 environment:
   sdk: ^3.12.0
@@ -51,6 +51,7 @@ flutter:
   assets:
     - assets/images/
     - assets/l10n/
+    - shorebird.yaml
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

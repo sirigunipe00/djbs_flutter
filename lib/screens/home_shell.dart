@@ -185,6 +185,12 @@ class _HomeShellState extends State<HomeShell> {
             onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           ),
           actions: [
+            if (_isAdmin && _page == _HomePage.morgue)
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 26),
+                tooltip: 'Add Dead Chamber',
+                onPressed: () => MorguePage.showAddOrEditDialog(context),
+              ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.language, color: Colors.white),
               onSelected: (code) {
