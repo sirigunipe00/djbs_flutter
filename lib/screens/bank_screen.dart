@@ -8,13 +8,6 @@ import '../main.dart';
 import '../strings.dart';
 
 class BloodBankInfo {
-  final String id;
-  final String city;
-  final String name;
-  final String address;
-  final String phone;
-  final String? dialNumber;
-  final bool isCustom;
 
   const BloodBankInfo({
     required this.id,
@@ -25,14 +18,6 @@ class BloodBankInfo {
     this.dialNumber,
     this.isCustom = false,
   });
-
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'address': address,
-    'phone': phone,
-    'city': city,
-    'updatedAt': ServerValue.timestamp,
-  };
 
   factory BloodBankInfo.fromMap(String id, String city, Map<dynamic, dynamic> map) {
     final phone = map['phone']?.toString() ?? '';
@@ -53,6 +38,21 @@ class BloodBankInfo {
       isCustom: true,
     );
   }
+  final String id;
+  final String city;
+  final String name;
+  final String address;
+  final String phone;
+  final String? dialNumber;
+  final bool isCustom;
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'address': address,
+    'phone': phone,
+    'city': city,
+    'updatedAt': ServerValue.timestamp,
+  };
 }
 
 class BankScreen extends StatefulWidget {

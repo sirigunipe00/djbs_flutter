@@ -118,11 +118,6 @@ class NdfPage extends StatelessWidget {
 }
 
 class DeadChamberItem {
-  final String id;
-  final String city;
-  final String name;
-  final String mobile;
-  final String? notes;
 
   const DeadChamberItem({
     required this.id,
@@ -131,14 +126,6 @@ class DeadChamberItem {
     required this.mobile,
     this.notes,
   });
-
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'mobile': mobile,
-    'city': city,
-    // if (notes != null && notes!.isNotEmpty) 'notes': notes,
-    'updatedAt': ServerValue.timestamp,
-  };
 
   factory DeadChamberItem.fromMap(String id, Map<dynamic, dynamic> map) {
     return DeadChamberItem(
@@ -149,6 +136,19 @@ class DeadChamberItem {
       // notes: map['notes']?.toString(),
     );
   }
+  final String id;
+  final String city;
+  final String name;
+  final String mobile;
+  final String? notes;
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'mobile': mobile,
+    'city': city,
+    // if (notes != null && notes!.isNotEmpty) 'notes': notes,
+    'updatedAt': ServerValue.timestamp,
+  };
 }
 
 class MorguePage extends StatefulWidget {
@@ -520,7 +520,7 @@ class _MorguePageState extends State<MorguePage> {
                           height: 32,
                           width: 32,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
+                          errorBuilder: (_, _, _) => const Icon(
                             Icons.inventory_2_outlined,
                             color: Color(0xFF1E5BB8),
                             size: 28,

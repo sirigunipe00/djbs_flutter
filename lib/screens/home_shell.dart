@@ -221,7 +221,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _drawer() {
-    final user = _user;
+    // final user = _user;
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,

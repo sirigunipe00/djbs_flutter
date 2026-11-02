@@ -428,7 +428,7 @@ class AuthService {
     final data = {
       'email': lowerEmail,
       'mobile': clean,
-      if (uid != null) 'uid': uid,
+      'uid': ?uid,
       if (password != null && password.isNotEmpty) 'pass': password,
       'updatedAt': ServerValue.timestamp,
     };
@@ -705,7 +705,7 @@ class AuthService {
                     'email': lowerEmail,
                     'mobile': mobile,
                     'cleanMobile': normalizePhone(mobile),
-                    if (donorName != null) 'name': donorName,
+                    'name': ?donorName,
                   });
                   return;
                 }

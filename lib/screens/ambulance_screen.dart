@@ -9,11 +9,6 @@ import '../strings.dart';
 import '../theme.dart';
 
 class AmbulanceItem {
-  final String id;
-  final String city;
-  final String name;
-  final String mobile;
-  final String? notes;
 
   const AmbulanceItem({
     required this.id,
@@ -22,14 +17,6 @@ class AmbulanceItem {
     required this.mobile,
     this.notes,
   });
-
-  Map<String, dynamic> toMap() => {
-    'name': name,
-    'mobile': mobile,
-    'city': city,
-    if (notes != null && notes!.isNotEmpty) 'notes': notes,
-    'updatedAt': ServerValue.timestamp,
-  };
 
   factory AmbulanceItem.fromMap(String id, Map<dynamic, dynamic> map) {
     return AmbulanceItem(
@@ -40,6 +27,19 @@ class AmbulanceItem {
       notes: map['notes']?.toString(),
     );
   }
+  final String id;
+  final String city;
+  final String name;
+  final String mobile;
+  final String? notes;
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'mobile': mobile,
+    'city': city,
+    if (notes != null && notes!.isNotEmpty) 'notes': notes,
+    'updatedAt': ServerValue.timestamp,
+  };
 }
 
 class AmbulanceScreen extends StatefulWidget {
